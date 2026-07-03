@@ -33,7 +33,7 @@ uniform_float hscale {
 }
 
 sampler_2d warpSampler {
-    source = "textures/warpfxnorm.dds";
+    source = "textures/water/water00.tga";
     wrap_s = repeat;
     wrap_t = repeat;
 }
