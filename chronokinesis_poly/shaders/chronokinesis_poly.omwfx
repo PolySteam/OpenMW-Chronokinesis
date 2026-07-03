@@ -263,6 +263,6 @@ technique {
     description = "shader";
     passes = brightpass,sunspill, warpfx;
 	version = "1.0";
-    author = "Vtastek, Epoch";
+    author = "Vtastek, Epoch, zesterer";
     dynamic = true;
 }
