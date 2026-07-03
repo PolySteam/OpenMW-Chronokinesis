@@ -1,3 +1,0 @@
-LOAD: scripts/chronokinesis_poly/load.lua
-GLOBAL: scripts/chronokinesis_poly/global.lua
-PLAYER: scripts/chronokinesis_poly/player.lua
