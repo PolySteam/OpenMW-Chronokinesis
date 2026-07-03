@@ -92,7 +92,6 @@ return {
 				end
 				local nx = math.min(chronokinesis_magnitude / 100, 1)
 				local timescale = 1 - 0.5 * (nx * nx)
-				print(timescale)
 				if shaderdone then
 					shader:setFloat('flipper', math.sin(core.getRealTime()*80))
 					shader:setFloat('timescale',timescale)
