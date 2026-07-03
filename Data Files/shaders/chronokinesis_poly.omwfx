@@ -1,0 +1,136 @@
+
+uniform_float strength {
+	default = 0.5;
+    min = 0.0;
+    max = 1.0;
+    step = 0.05;
+    static = false;
+    display_name = "strentgh";
+}
+uniform_float timescale {
+	default = 0.5;
+    min = 0.5;
+    max = 1.0;
+    step = 0.005;
+    static = false;
+    display_name = "timescale";
+}
+uniform_float flipper {
+	default = 1;
+	static = false;
+}
+
+sampler_2d swirly {
+    source = "textures/water/water00.tga";
+    wrap_s = repeat;
+    wrap_t = repeat;
+}
+
+fragment wobblyswirly{
+	#define PI 3.141
+    #define TAU 6.283
+    vec3 toWorld(vec2 tex){
+		vec3 cameraRight = vec3(
+			omw.viewMatrix[0][0],
+			omw.viewMatrix[1][0],
+			omw.viewMatrix[2][0]
+		);
+		vec3 cameraUp = vec3(
+			omw.viewMatrix[0][1],
+			omw.viewMatrix[1][1],
+			omw.viewMatrix[2][1]
+		);
+		vec3 cameraForward = vec3(
+			omw.viewMatrix[0][2],
+			omw.viewMatrix[1][2],
+			omw.viewMatrix[2][2]
+		);
+		float screenX = 2.0 * (1.0 - tex.x) - 1.0;
+		float screenY = 2.0 * tex.y - 1.0;
+		float cameraX = screenX / omw.projectionMatrix[0][0];
+		float cameraY = -screenY / omw.projectionMatrix[1][1];
+		return cameraForward+cameraRight*cameraX+cameraUp*cameraY;
+	}
+   vec2 bubble(vec2 tex)
+	{
+		vec3 p = normalize(toWorld(tex));
+		float u = atan(p.y, p.x) / (2.0 * PI) + 0.5;
+		float v = asin(p.z) / PI + 0.5;
+		return vec2(u, v);
+	}
+    float swirls(vec2 Vector1, float Time, float Duh, float Coverage, float timescale)
+	{
+		float FinalBright = 0.112;
+		vec2 Vector2 = vec2(Vector1);
+		float vib = (1.0 - timescale);
+		vib = vib * vib; // soften curve
+		for (int Layer = 0; Layer < 8; Layer++)
+		{
+			float Timeadj = Time * (1.0 + float(Layer) * 0.2);
+			Vector2 = Vector1 + vec2(
+				cos(Timeadj - Vector2.x) + sin(Timeadj - Vector2.y),
+				sin(Timeadj - Vector2.y) + cos(Timeadj + Vector2.x)
+			);
+			vec2 jitter = vec2(
+				sin(Timeadj * 3.1 + float(Layer) * 12.7),
+				cos(Timeadj * 2.7 - float(Layer) * 9.3)
+			) * vib * 0.15;
+			Vector2 += jitter;
+			float d = length(vec2(
+				Vector1.x / sin(Vector2.x + Timeadj),
+				Vector1.y / cos(Vector2.y + Timeadj)
+			));
+
+			FinalBright += 1.0 / (d * d + 0.2) * 600.0;
+		}
+		FinalBright = FinalBright / Duh;
+		FinalBright = Coverage - pow(FinalBright, 2.22);
+		FinalBright = pow(abs(FinalBright), 8.0);
+		return FinalBright;
+	}
+    omw_In vec2 omw_TexCoord;
+    void main()
+    {
+        vec4 tex = omw_GetLastShader(omw_TexCoord);
+		
+		vec2 h = bubble(omw_TexCoord);
+		vec2 h2 = mod(h*TAU, TAU)-250.0;
+		
+        float timetick = omw.frameNumber*0.4;
+		float timetick2 = omw.frameNumber*0.6;
+		float sunmod = (1-omw.sunVis);
+		sunmod = sunmod*sunmod;
+		float flippert = cos(timetick*0.5);
+		float flippert2 = sin(timetick*0.8);
+		float timescaleadj = 1-timescale;
+		vec2 bleh = omw_Texture2D(swirly, vec2(1,1)).xy+flipper*0.002;
+		float blehthing = (1+flippert)*(0.015+timescaleadj*0.05);
+		float blehthing2 = (1+flippert2)*(0.02+timescaleadj*0.05);
+		float blehthing3 = (0.5+sin(omw.frameNumber*flippert*0.1))*(0.05+timescaleadj*0.02);
+		bleh = mix(bleh, vec2(1.0, 1.0), mix(vec2(1.0), vec2(1-blehthing+blehthing2, 1+blehthing*blehthing2+blehthing3), strength+flippert*0.3));
+		vec4 buh = omw_GetLastPass(omw_TexCoord * bleh);
+		buh.rgb += vec3(1,0.8,1)*0.3;
+		
+		vec2 bleh2 = mix(bleh, vec2(1.0, 1.0), mix(vec2(1.0), vec2(0.7, 0.7), 0.5+flippert*0.3));
+        vec4 blah = omw_GetLastShader(omw_TexCoord * bleh2);
+		
+		vec3 bah = (buh.rgb*(1+sunmod)*2)*strength+blah.rgb*strength;
+		
+		vec3 swirly = swirls(h2, timetick*0.005,0.06,6.2-(1+cos(timetick*0.05))*0.2,timescale)*2*strength + vec3(1.5,1,1.5);
+
+        bah = mix(swirly, bah, 0.9);
+		
+        const vec3 luminance = vec3(0.5,1,0.5);
+        float gray = dot(luminance, tex.rgb);
+		tex.rgb = tex.rgb+vec3(2.5,1,2.5)*strength*0.2+bah*strength;
+		
+        omw_FragColor = vec4(mix(tex.rgb, vec3(gray), strength), tex.a*strength);
+    }
+}
+
+technique {
+    description = "Very scawy";
+    passes = wobblyswirly;
+    version = "1.0";
+    author = "Poly";
+}
